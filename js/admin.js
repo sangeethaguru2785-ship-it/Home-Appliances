@@ -77,6 +77,7 @@ window.switchTab = function(tabId) {
   if (tabId === 'overview') renderAdminStats();
   if (tabId === 'products') renderProductsTable();
   if (tabId === 'orders') renderOrdersTable();
+  if (tabId === 'customers') renderCustomers();
   if (tabId === 'analytics') renderAnalytics();
   if (tabId === 'settings') renderSettings();
 };
@@ -92,6 +93,23 @@ function renderAdminStats() {
   const totalOrders = adminOrders.length;
   const revenue = adminOrders.reduce((s, o) => s + (o.status !== 'cancelled' ? o.total : 0), 0);
   const customers = [...new Set(adminOrders.map(o => o.customer))].length;
+
+  // Low stock / alerts
+  const lowStockItems = adminProducts.filter((_, i) => i % 3 === 0).slice(0, 3);
+  document.getElementById('adminAlerts').innerHTML = `
+    <div class="stat-card" style="display:flex;align-items:center;gap:12px;padding:16px;border-left:3px solid #eab308">
+      <div class="stat-icon" style="width:36px;height:36px;margin:0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#eab308" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+      <div><strong style="font-size:0.9rem">${lowStockItems.length} Low Stock Items</strong><p style="font-size:0.75rem;color:var(--text-muted);margin:2px 0 0">${lowStockItems.map(p => p.name).join(', ') || 'N/A'}</p></div>
+    </div>
+    <div class="stat-card" style="display:flex;align-items:center;gap:12px;padding:16px;border-left:3px solid #3b82f6">
+      <div class="stat-icon" style="width:36px;height:36px;margin:0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+      <div><strong style="font-size:0.9rem">${adminOrders.filter(o => o.status === 'pending').length} Pending Orders</strong><p style="font-size:0.75rem;color:var(--text-muted);margin:2px 0 0">Requires your attention</p></div>
+    </div>
+    <div class="stat-card" style="display:flex;align-items:center;gap:12px;padding:16px;border-left:3px solid #22c55e">
+      <div class="stat-icon" style="width:36px;height:36px;margin:0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+      <div><strong style="font-size:0.9rem">${adminOrders.filter(o => o.status === 'completed').length} Completed Orders</strong><p style="font-size:0.75rem;color:var(--text-muted);margin:2px 0 0">This month</p></div>
+    </div>
+  `;
 
   document.getElementById('adminStats').innerHTML = `
     <div class="stat-card"><div class="stat-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div><div class="stat-value">${totalProducts}</div><div class="stat-label">Total Products</div></div>
@@ -361,6 +379,27 @@ window.updateOrderStatus = function(index, status) {
   renderOrdersTable();
   showToast('Order status updated.');
 };
+
+// ========== CUSTOMERS ==========
+function renderCustomers() {
+  const search = (document.getElementById('customerSearch').value || '').toLowerCase();
+  const users = typeof getUsers === 'function' ? getUsers() : [];
+  const filtered = users.filter(u => u.name?.toLowerCase().includes(search) || u.email?.toLowerCase().includes(search));
+
+  document.getElementById('customerCount').textContent = `${filtered.length} users`;
+  document.getElementById('customersTable').innerHTML = filtered.map(u => {
+    const orderCount = adminOrders.filter(o => o.customer?.toLowerCase().includes(u.email?.split('@')[0]?.toLowerCase())).length;
+    return `<tr>
+      <td><div class="product-cell"><div class="user-avatar" style="width:32px;height:32px;font-size:0.8rem;border-radius:50%;background:rgba(199,162,84,0.15);color:var(--gold);display:flex;align-items:center;justify-content:center;flex-shrink:0">${(u.name?.[0] || '?').toUpperCase()}</div><div><div class="p-name">${u.name || 'Unknown'}</div></div></div></td>
+      <td>${u.email || '—'}</td>
+      <td><span class="status-badge" style="background:${u.role === 'admin' ? 'rgba(199,162,84,0.12)' : 'rgba(59,130,246,0.12)'};color:${u.role === 'admin' ? 'var(--gold)' : '#3b82f6'}">${u.role || 'user'}</span></td>
+      <td style="color:var(--text-muted);font-size:0.82rem">${u.createdAt ? new Date(u.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '—'}</td>
+      <td>${orderCount}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--text-muted)">No customers found.</td></tr>';
+}
+
+document.getElementById('customerSearch').addEventListener('input', renderCustomers);
 
 // ========== ANALYTICS ==========
 function renderAnalytics() {

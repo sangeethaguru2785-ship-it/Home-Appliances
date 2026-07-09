@@ -75,6 +75,7 @@ window.switchTab = function(tabId) {
   if (el) el.classList.add('active');
   if (tabId === 'overview') renderUserOverview();
   if (tabId === 'orders') renderUserOrders();
+  if (tabId === 'wishlist') renderWishlist();
   if (tabId === 'addresses') renderAddresses();
   if (tabId === 'profile') renderProfile();
 };
@@ -96,6 +97,11 @@ function renderUserOverview() {
     <div class="stat-card"><div class="stat-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div><div class="stat-value">${addrCount}</div><div class="stat-label">Saved Addresses</div></div>
     <div class="stat-card"><div class="stat-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div><div class="stat-value">${completedOrders}</div><div class="stat-label">Completed Orders</div></div>
   `;
+
+  // Activity summary
+  const lastOrder = userOrders.length ? userOrders[userOrders.length - 1] : null;
+  document.getElementById('lastOrderTime').textContent = lastOrder ? lastOrder.date : 'No orders yet';
+  document.getElementById('completedCount').textContent = completedOrders;
 
   // Recent orders
   const recent = userOrders.slice(-3).reverse();
@@ -238,6 +244,54 @@ function renderUserOrders() {
   `).join('');
 }
 
+// ========== WISHLIST ==========
+function renderWishlist() {
+  const grid = document.getElementById('wishlistGrid');
+  const wishlistIds = JSON.parse(localStorage.getItem('Stackly_wishlist')) || [];
+  if (!wishlistIds.length) {
+    grid.innerHTML = '<div class="empty-state"><h3>Your Wishlist is Empty</h3><p>Browse products and add items to your wishlist.</p><a href="products.html" class="btn-dash primary">Browse Products</a></div>';
+    return;
+  }
+  const allProducts = typeof products !== 'undefined' ? products : JSON.parse(localStorage.getItem('admin_products')) || [];
+  const items = allProducts.filter(p => wishlistIds.includes(p.id));
+  if (!items.length) {
+    grid.innerHTML = '<div class="empty-state"><h3>Wishlist items not found</h3><p>The products you saved may have been removed.</p></div>';
+    return;
+  }
+  grid.innerHTML = items.map(p => `
+    <div class="product-card">
+      <div class="product-image">
+        ${p.image ? `<img src="${p.image}" alt="${p.name}">` : (p.svg || '')}
+        ${p.badge ? `<span class="product-badge badge-${p.badge}">${p.badge}</span>` : ''}
+      </div>
+      <div class="product-info">
+        <div class="product-category">${p.category}</div>
+        <a href="product-detail.html?id=${p.id}" class="product-name">${p.name}</a>
+        <div class="product-rating">
+          <span class="stars">${'\u2605'.repeat(Math.floor(p.rating))}${'\u2606'.repeat(5 - Math.floor(p.rating))}</span>
+          <span>(${p.reviews})</span>
+        </div>
+        <div class="product-price">
+          <span class="price-current">$${p.price.toLocaleString()}</span>
+          ${p.originalPrice ? `<span class="price-original">$${p.originalPrice.toLocaleString()}</span>` : ''}
+        </div>
+        <button class="add-to-cart" onclick="removeFromWishlist(${p.id})">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          Remove
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
+
+window.removeFromWishlist = function(productId) {
+  let wishlist = JSON.parse(localStorage.getItem('Stackly_wishlist')) || [];
+  wishlist = wishlist.filter(id => id !== productId);
+  localStorage.setItem('Stackly_wishlist', JSON.stringify(wishlist));
+  renderWishlist();
+  showToast('Removed from wishlist');
+};
+
 // ========== ADDRESSES ==========
 function renderAddresses() {
   const grid = document.getElementById('addressGrid');
@@ -366,6 +420,7 @@ document.getElementById('saveProfileBtn').addEventListener('click', () => {
 // ========== INIT ==========
 renderUserOverview();
 renderUserOrders();
+renderWishlist();
 renderAddresses();
 renderProfile();
 

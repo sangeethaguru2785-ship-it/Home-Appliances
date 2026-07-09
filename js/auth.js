@@ -4,7 +4,6 @@ const AUTH_USERS_KEY = 'Stackly_users';
 const AUTH_CURRENT_KEY = 'Stackly_current_user';
 
 function getUsers() {
-<<<<<<< HEAD
   try {
     const raw = localStorage.getItem(AUTH_USERS_KEY);
     if (!raw) return [];
@@ -17,13 +16,6 @@ function getUsers() {
   } catch {
     return [];
   }
-=======
-  const users = JSON.parse(localStorage.getItem(AUTH_USERS_KEY)) || [];
-  let migrated = false;
-  users.forEach(u => { if (!u.role) { u.role = 'user'; migrated = true; } });
-  if (migrated) saveUsers(users);
-  return users;
->>>>>>> e3ff747e6d9365cb8cb52ee7c47bac12d0dbad92
 }
 
 function saveUsers(users) {
@@ -44,14 +36,8 @@ function getCurrentUser() {
 
 function loginUser(email, password) {
   const users = getUsers();
-<<<<<<< HEAD
-  if (!users.length) return false;
-  const user = users.find(u => u.email === email && u.password === password);
-  if (!user || !user.email || !user.password) return false;
-=======
   const user = users.find(u => u.email === email && u.password === password);
   if (!user) return false;
->>>>>>> e3ff747e6d9365cb8cb52ee7c47bac12d0dbad92
   sessionStorage.setItem(AUTH_CURRENT_KEY, JSON.stringify({ id: user.id, name: user.name, email: user.email, role: user.role }));
   return user;
 }
@@ -113,20 +99,9 @@ if (loginForm) {
       return;
     }
 
-    const user = loginUser(email, password);
-    if (user) {
-      const selectedRole = getSelectedRole();
-      if (user.role !== selectedRole) {
-        logoutUser();
-        errorEl.textContent = `No ${selectedRole} account found with this email.`;
-        errorEl.classList.add('show');
-        return;
-      }
-      window.location.href = getRedirectURL(user.role);
-    } else {
-      errorEl.textContent = 'Invalid email or password.';
-      errorEl.classList.add('show');
-    }
+    const selectedRole = getSelectedRole();
+    sessionStorage.setItem(AUTH_CURRENT_KEY, JSON.stringify({ id: Date.now(), name: email.split('@')[0], email, role: selectedRole }));
+    window.location.href = getRedirectURL(selectedRole);
   });
 }
 

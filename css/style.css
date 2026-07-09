@@ -2849,6 +2849,21 @@ section {
   background: var(--gold-light);
 }
 
+.auth-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin: 12px 0;
+  transition: color var(--transition);
+  width: fit-content;
+}
+.auth-back:hover {
+  color: var(--gold);
+}
+
 .auth-footer {
   text-align: center;
   margin-top: 20px;
